@@ -1,7 +1,8 @@
 import * as assert from "node:assert/strict";
 import * as fs from "node:fs/promises";
+import { createRequire } from "node:module";
 import * as path from "node:path";
-import { describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 import { pathToFileURL } from "node:url";
 
 import { resolveFrom, resolveAbsolute, resolveCwd } from "pawfs";
@@ -11,24 +12,26 @@ type RequireError = Error & {
   requireStack: string[];
 };
 
+const fixtures = path.resolve("tests/fixtures");
+
 describe("resolveAbsolute", () => {
   it("should be a function", () => {
     assert.equal(typeof resolveAbsolute, "function");
   });
 
   it("should respect absolute inputs", () => {
-    const input = path.resolve("fixtures/a/b/c");
+    const input = path.resolve("tests/fixtures/a/b/c");
     const output = resolveAbsolute(input);
     assert.equal(output, input);
   });
 
   it("should resolve non-absolute inputs", () => {
-    const output = resolveAbsolute("fixtures/a/b/c");
-    assert.equal(output, path.resolve("fixtures/a/b/c"));
+    const output = resolveAbsolute("tests/fixtures/a/b/c");
+    assert.equal(output, path.resolve("tests/fixtures/a/b/c"));
   });
 
   it("should handle file:/// inputs", { skip: true }, () => {
-    const real = path.resolve("fixtures");
+    const real = fixtures;
     const input = pathToFileURL(real).toString();
     const output = resolveAbsolute(input);
     assert.equal(output, real);
@@ -42,7 +45,7 @@ describe("resolveFrom", () => {
 
   it("should throw MODULE_NOT_FOUND if identifer not found", () => {
     try {
-      resolveFrom("fixtures", "foobar");
+      resolveFrom(fixtures, "foobar");
       assert.fail("should have thrown");
     } catch (err) {
       assert.ok(err instanceof Error);
@@ -51,49 +54,46 @@ describe("resolveFrom", () => {
 
       assert.equal(code, "MODULE_NOT_FOUND");
       assert.match(message, /Cannot find module 'foobar'/);
-      assert.deepEqual(requireStack, [path.resolve("fixtures/noop.js")]);
+      assert.deepEqual(requireStack, [path.join(fixtures, "noop.js")]);
     }
   });
 
   it("should NOT throw if `silent` enabled", () => {
-    const output = resolveFrom("foo", "bar", true);
+    const output = resolveFrom(fixtures, "bar", true);
     assert.equal(output, undefined);
   });
 
   it("should resolve relative paths", async () => {
-    const target = path.resolve("fixtures/foo.js");
+    const target = path.join(fixtures, "foo.js");
 
     try {
       await fs.writeFile(target, "");
-      const output = resolveFrom("fixtures", "./foo");
+      const output = resolveFrom(fixtures, "./foo");
       assert.equal(output, target);
     } finally {
       await fs.unlink(target);
     }
   });
 
-  it("should resolve node_module identifiers", async () => {
-    const moddir = path.resolve("fixtures/node_modules");
-
-    const foobar = path.join(moddir, "foobar");
-    const pkgfile = path.join(foobar, "package.json");
-    const target = path.join(foobar, "index.js");
-
-    try {
-      await fs.mkdir(foobar, { recursive: true });
-
-      await fs.writeFile(target, "");
-      await fs.writeFile(pkgfile, "{}");
-
-      const output = resolveFrom("fixtures", "foobar");
-      assert.equal(output, target);
-    } finally {
-      await fs.rm(moddir, { recursive: true });
-    }
+  it("should resolve node_module identifiers", () => {
+    const packageName = "typescript";
+    const target = createRequire(import.meta.url).resolve(packageName);
+    const output = resolveFrom(fixtures, packageName);
+    assert.equal(output, target);
   });
 });
 
 describe("resolveCwd", () => {
+  const originalCwd = process.cwd();
+
+  beforeEach(() => {
+    process.chdir(fixtures);
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+  });
+
   it("should be a function", () => {
     assert.equal(typeof resolveCwd, "function");
   });
@@ -108,7 +108,7 @@ describe("resolveCwd", () => {
       assert.ok(err instanceof Error);
       assert.equal(code, "MODULE_NOT_FOUND");
       assert.match(message, /Cannot find module 'foobar'/);
-      assert.deepEqual(requireStack, [path.resolve("noop.js")]);
+      assert.deepEqual(requireStack, [path.join(fixtures, "noop.js")]);
     }
   });
 
@@ -118,28 +118,15 @@ describe("resolveCwd", () => {
   });
 
   it("should resolve relative paths", () => {
-    const target = path.resolve("license");
-    const output = resolveCwd("./license");
+    const target = path.join(fixtures, "b.txt");
+    const output = resolveCwd("./b.txt");
     assert.equal(output, target);
   });
 
-  it("should resolve node_module identifiers", async () => {
-    const moddir = path.resolve("node_modules");
-
-    const foobar = path.join(moddir, "foobar");
-    const pkgfile = path.join(foobar, "package.json");
-    const target = path.join(foobar, "index.js");
-
-    try {
-      await fs.mkdir(foobar, { recursive: true });
-
-      await fs.writeFile(target, "");
-      await fs.writeFile(pkgfile, "{}");
-
-      const output = resolveCwd("foobar");
-      assert.equal(output, target);
-    } finally {
-      await fs.rm(foobar, { recursive: true });
-    }
+  it("should resolve node_module identifiers", () => {
+    const packageName = "typescript";
+    const target = createRequire(import.meta.url).resolve(packageName);
+    const output = resolveCwd(packageName);
+    assert.equal(output, target);
   });
 });

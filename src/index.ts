@@ -2,7 +2,7 @@ export { isExecutable, isReadable, isWritable } from "./access";
 
 export { findAny, findDir, findFile, findUp } from "./find";
 
-export { findUpPackageJson, findPackageJsonCacheDir } from "./package";
+export { findUpPackageJson, findPackageCacheDir } from "./package";
 
 export { resolveFrom, resolveAbsolute, resolveCwd } from "./resolve";
 

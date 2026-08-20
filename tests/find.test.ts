@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 
 import { findUp, findDir, findFile, findAny } from "pawfs";
 
-const fixtures = resolve("fixtures");
+const fixtures = resolve("tests/fixtures");
 
 describe("findUp", () => {
   const target = join(fixtures, "a/b/c/d/e/f/file.txt");
@@ -14,8 +14,8 @@ describe("findUp", () => {
   });
 
   it("should default looking in current (cwd) directory", () => {
-    const output = findUp("license");
-    assert.equal(output, resolve("license"));
+    const output = findUp("b.txt", { cwd: fixtures });
+    assert.equal(output, join(fixtures, "b.txt"));
   });
 
   it("should use `options.cwd` directory", () => {
@@ -49,13 +49,15 @@ describe("findAny", () => {
   });
 
   it("should looking in current (cwd) directory", () => {
-    const output = findAny(["license"]);
-    assert.equal(output, resolve("license"));
+    const output = findAny(["b.txt"], { cwd: fixtures });
+    assert.equal(output, join(fixtures, "b.txt"));
   });
 
   it("should respect the input order", () => {
-    const output = findAny(["readme.md", "license", "deno.json"]);
-    assert.equal(output, resolve("readme.md"));
+    const output = findAny(["c.txt", "b.txt", "a.txt"], {
+      cwd: fixtures,
+    });
+    assert.equal(output, join(fixtures, "c.txt"));
   });
 
   it("should resolve from `options.cwd` directory", () => {
@@ -93,8 +95,8 @@ describe("findFile", () => {
   });
 
   it("should looking in current (cwd) directory", () => {
-    const output = findFile("license");
-    assert.equal(output, resolve("license"));
+    const output = findFile("b.txt", { cwd: fixtures });
+    assert.equal(output, join(fixtures, "b.txt"));
   });
 
   it("should use `options.cwd` directory", () => {
@@ -134,8 +136,8 @@ describe("findDir", () => {
   });
 
   it("should looking in current (cwd) directory", () => {
-    const output = findDir("fixtures");
-    assert.equal(output, resolve("fixtures"));
+    const output = findDir("a", { cwd: fixtures });
+    assert.equal(output, join(fixtures, "a"));
   });
 
   it("should use `options.cwd` directory", () => {

@@ -18,7 +18,7 @@
   "scripts": {
     "u": "bun run --sequential format build test:bun test",
     "test": "node --test",
-    "test:bun": "bun test",
+    "test:bun": "bun test --dots",
     "lint": "oxlint",
     "format": "oxfmt",
     "build": "tsdown",

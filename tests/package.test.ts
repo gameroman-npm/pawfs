@@ -3,9 +3,9 @@ import { join, resolve } from "node:path";
 import { env } from "node:process";
 import { describe, it } from "node:test";
 
-import { findUpPackageJson, findPackageJsonCacheDir } from "pawfs";
+import { findUpPackageJson, findPackageCacheDir } from "pawfs";
 
-const fixtures = resolve("fixtures");
+const fixtures = resolve("tests/fixtures");
 
 const pkgfile = join(fixtures, "a/b/package.json");
 const start = join(fixtures, "a/b/c/d/e/f/g/h/i/j");
@@ -16,8 +16,8 @@ describe("findUpPackageJson", () => {
   });
 
   it('should find the nearest "package.json" file', () => {
-    const output = findUpPackageJson();
-    assert.equal(output, resolve("package.json"));
+    const output = findUpPackageJson({ cwd: fixtures });
+    assert.equal(output, join(fixtures, "package.json"));
   });
 
   it('should use `options.cwd` to resolve nearest "package.json" file', () => {
@@ -28,8 +28,8 @@ describe("findUpPackageJson", () => {
 
   it("should stop resolving after `options.last` directory", () => {
     const output = findUpPackageJson({
-      cwd: resolve("fixtures/a/b/c/d/e/f/g/h/i/j"),
-      last: resolve("fixtures/a/b/c/d/e/f"),
+      cwd: resolve("tests/fixtures/a/b/c/d/e/f/g/h/i/j"),
+      last: resolve("tests/fixtures/a/b/c/d/e/f"),
     });
 
     assert.equal(output, undefined);
@@ -37,35 +37,35 @@ describe("findUpPackageJson", () => {
 
   it("should still search `options.last` directory", () => {
     const output = findUpPackageJson({
-      cwd: resolve("fixtures/a/b/c/d/e/f/g/h/i/j"),
-      last: resolve("fixtures/a/b"),
+      cwd: resolve("tests/fixtures/a/b/c/d/e/f/g/h/i/j"),
+      last: resolve("tests/fixtures/a/b"),
     });
 
     assert.equal(output, pkgfile);
   });
 });
 
-describe("findPackageJsonCacheDir", () => {
+describe("findPackageCacheDir", () => {
   it("should be a function", () => {
-    assert.equal(typeof findPackageJsonCacheDir, "function");
+    assert.equal(typeof findPackageCacheDir, "function");
   });
 
   it('should construct path from nearest "package.json" file', () => {
-    const output = findPackageJsonCacheDir("foobar");
-    assert.equal(output, resolve("node_modules/.cache/foobar")); // root
+    const output = findPackageCacheDir("foobar", { cwd: fixtures });
+    assert.equal(output, join(fixtures, "node_modules/.cache/foobar"));
   });
 
   it("should use `options.cwd` for resolution", () => {
-    const output = findPackageJsonCacheDir("foobar", { cwd: start });
+    const output = findPackageCacheDir("foobar", { cwd: start });
     const expect = resolve(pkgfile, "../node_modules/.cache/foobar");
 
     assert.equal(output, expect);
   });
 
   it("should still search `options.last` directory", () => {
-    const output = findPackageJsonCacheDir("foobar", {
+    const output = findPackageCacheDir("foobar", {
       cwd: start,
-      last: resolve("fixtures/a/b"),
+      last: resolve("tests/fixtures/a/b"),
     });
 
     const expect = resolve(pkgfile, "../node_modules/.cache/foobar");
@@ -73,9 +73,9 @@ describe("findPackageJsonCacheDir", () => {
   });
 
   it("should stop after `options.last` directory", () => {
-    const output = findPackageJsonCacheDir("foobar", {
+    const output = findPackageCacheDir("foobar", {
       cwd: start,
-      last: resolve("fixtures/a/b/c"),
+      last: resolve("tests/fixtures/a/b/c"),
     });
 
     assert.equal(output, undefined);
@@ -84,8 +84,8 @@ describe("findPackageJsonCacheDir", () => {
   it("should ignore invalid `env.CACHE_DIR` values", () => {
     env["CACHE_DIR"] = "true";
 
-    const output = findPackageJsonCacheDir("foobar");
-    const expect = resolve("node_modules/.cache/foobar"); // root
+    const output = findPackageCacheDir("foobar", { cwd: fixtures });
+    const expect = join(fixtures, "node_modules/.cache/foobar");
     delete env["CACHE_DIR"];
 
     assert.equal(output, expect);
@@ -94,7 +94,7 @@ describe("findPackageJsonCacheDir", () => {
   it("should use env.CACHE_DIR for base", () => {
     env["CACHE_DIR"] = fixtures;
 
-    const output = findPackageJsonCacheDir("foobar");
+    const output = findPackageCacheDir("foobar");
     const expect = resolve(fixtures, "foobar");
     delete env["CACHE_DIR"];
 

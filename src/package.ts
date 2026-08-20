@@ -10,7 +10,7 @@ export function findUpPackageJson(options?: Options): string | undefined {
   return findUp("package.json", options);
 }
 
-export function findPackageJsonCacheDir(
+export function findPackageCacheDir(
   name: string,
   options?: Options & { create?: boolean },
 ): string | undefined {
